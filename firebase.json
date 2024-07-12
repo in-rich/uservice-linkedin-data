@@ -1,0 +1,15 @@
+{
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "storage": {
+      "port": 1251
+    },
+    "ui": {
+      "enabled": true,
+      "port": 1250
+    },
+    "singleProjectMode": true
+  }
+}

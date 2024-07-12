@@ -1,0 +1,9 @@
+auth-domain: inrich-preprod.firebaseapp.com
+project-id: inrich-preprod
+storage-bucket: inrich-preprod.appspot.com
+messaging-sender-id: 614379963531
+app-id: 1:614379963531:web:2656b5c70831e64b17408e
+
+buckets:
+  profile-pictures: inrich-staging-profile-pictures
+  company-logos: inrich-staging-company-logos
