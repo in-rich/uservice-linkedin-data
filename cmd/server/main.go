@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/in-rich/lib-go/deploy"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/config"
@@ -13,7 +12,11 @@ import (
 )
 
 func main() {
-	db, closeDB := deploy.OpenDB(config.App.Postgres.DSN)
+	log.Println("Starting server")
+	db, closeDB, err := deploy.OpenDB(config.App.Postgres.DSN)
+	if err != nil {
+		log.Fatalf("failed to connect to database: %v", err)
+	}
 	defer closeDB()
 
 	if err := migrations.Migrate(db); err != nil {
@@ -67,8 +70,10 @@ func main() {
 	upsertCompanyHandler := handlers.NewUpsertCompany(upsertCompanyService)
 	getCompanyLastUpdateHandler := handlers.NewGetCompanyLastUpdate(getCompanyLastUpdateService)
 
-	listener, server := deploy.StartGRPCServer(fmt.Sprintf(":%d", config.App.Server.Port), "linkedin_data")
+	log.Println("Starting to listen on port", config.App.Server.Port)
+	listener, server, health := deploy.StartGRPCServer(config.App.Server.Port)
 	defer deploy.CloseGRPCServer(listener, server)
+	go health()
 
 	linkedin_data_pb.RegisterGetUserServer(server, getUserHandler)
 	linkedin_data_pb.RegisterListUsersServer(server, listUsersHandler)
@@ -80,6 +85,7 @@ func main() {
 	linkedin_data_pb.RegisterUpsertCompanyServer(server, upsertCompanyHandler)
 	linkedin_data_pb.RegisterGetCompanyLastUpdateServer(server, getCompanyLastUpdateHandler)
 
+	log.Println("Server started")
 	if err := server.Serve(listener); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}
