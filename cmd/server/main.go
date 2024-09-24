@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/in-rich/lib-go/deploy"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/config"
@@ -30,6 +31,24 @@ func main() {
 	companyLogosBucket, err := config.StorageClient.Bucket(config.Firebase.Buckets.CompanyLogos)
 	if err != nil {
 		log.Fatalf("failed to connect to company logos bucket: %v", err)
+	}
+
+	depCheck := func() map[string]bool {
+		errDB := db.Ping()
+		_, errProfileBucket := profilePicturesBucket.Attrs(context.Background())
+		_, errCompanyBucket := companyLogosBucket.Attrs(context.Background())
+
+		return map[string]bool{
+			"GetUser":              errDB == nil && errProfileBucket == nil,
+			"ListUsers":            errDB == nil && errProfileBucket == nil,
+			"UpsertUser":           errDB == nil && errProfileBucket == nil,
+			"GetUserLastUpdate":    errDB == nil && errProfileBucket == nil,
+			"GetCompany":           errDB == nil && errCompanyBucket == nil,
+			"ListCompanies":        errDB == nil && errCompanyBucket == nil,
+			"UpsertCompany":        errDB == nil && errCompanyBucket == nil,
+			"GetCompanyLastUpdate": errDB == nil && errCompanyBucket == nil,
+			"":                     errDB == nil && errCompanyBucket == nil && errProfileBucket == nil,
+		}
 	}
 
 	getUsersDAO := dao.NewGetUserRepository(db)
@@ -71,7 +90,7 @@ func main() {
 	getCompanyLastUpdateHandler := handlers.NewGetCompanyLastUpdate(getCompanyLastUpdateService)
 
 	log.Println("Starting to listen on port", config.App.Server.Port)
-	listener, server, health := deploy.StartGRPCServer(config.App.Server.Port)
+	listener, server, health := deploy.StartGRPCServer(config.App.Server.Port, depCheck)
 	defer deploy.CloseGRPCServer(listener, server)
 	go health()
 
