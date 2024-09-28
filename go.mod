@@ -8,21 +8,21 @@ require (
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/google/go-cmp v0.6.0
 	github.com/google/uuid v1.6.0
-	github.com/in-rich/lib-go v0.0.0-20240924230758-8169f02f4f65
-	github.com/in-rich/proto/proto-go v0.0.0-20240924133509-c5742944855b
+	github.com/in-rich/lib-go v0.0.0-20240928165343-7e519fdfc9a0
+	github.com/in-rich/proto/proto-go v0.0.0-20240926072742-2db3ff45f9c2
 	github.com/samber/lo v1.47.0
 	github.com/stretchr/testify v1.9.0
 	github.com/uptrace/bun v1.2.3
 	github.com/uptrace/bun/dialect/pgdialect v1.2.3
 	github.com/uptrace/bun/driver/pgdriver v1.2.3
-	google.golang.org/api v0.198.0
+	google.golang.org/api v0.199.0
 	google.golang.org/grpc v1.67.0
 	google.golang.org/protobuf v1.34.2
 )
 
 require (
 	cloud.google.com/go v0.115.1 // indirect
-	cloud.google.com/go/auth v0.9.4 // indirect
+	cloud.google.com/go/auth v0.9.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/firestore v1.17.0 // indirect

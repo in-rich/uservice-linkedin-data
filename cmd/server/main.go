@@ -33,22 +33,27 @@ func main() {
 		log.Fatalf("failed to connect to company logos bucket: %v", err)
 	}
 
-	depCheck := func() map[string]bool {
-		errDB := db.Ping()
-		_, errProfileBucket := profilePicturesBucket.Attrs(context.Background())
-		_, errCompanyBucket := companyLogosBucket.Attrs(context.Background())
+	depCheck := deploy.DepsCheck{
+		Dependencies: func() map[string]error {
+			_, errProfileBucket := profilePicturesBucket.Attrs(context.Background())
+			_, errCompanyBucket := companyLogosBucket.Attrs(context.Background())
 
-		return map[string]bool{
-			"GetUser":              errDB == nil && errProfileBucket == nil,
-			"ListUsers":            errDB == nil && errProfileBucket == nil,
-			"UpsertUser":           errDB == nil && errProfileBucket == nil,
-			"GetUserLastUpdate":    errDB == nil && errProfileBucket == nil,
-			"GetCompany":           errDB == nil && errCompanyBucket == nil,
-			"ListCompanies":        errDB == nil && errCompanyBucket == nil,
-			"UpsertCompany":        errDB == nil && errCompanyBucket == nil,
-			"GetCompanyLastUpdate": errDB == nil && errCompanyBucket == nil,
-			"":                     errDB == nil && errCompanyBucket == nil && errProfileBucket == nil,
-		}
+			return map[string]error{
+				"Postgres":                     db.Ping(),
+				"CloudBucket(ProfilePictures)": errProfileBucket,
+				"CloudBucket(CompanyLogos)":    errCompanyBucket,
+			}
+		},
+		Services: deploy.DepCheckServices{
+			"GetUser":              {"Postgres", "CloudBucket(ProfilePictures)"},
+			"ListUsers":            {"Postgres", "CloudBucket(ProfilePictures)"},
+			"UpsertUser":           {"Postgres", "CloudBucket(ProfilePictures)"},
+			"GetUserLastUpdate":    {"Postgres", "CloudBucket(ProfilePictures)"},
+			"GetCompany":           {"Postgres", "CloudBucket(CompanyLogos)"},
+			"ListCompanies":        {"Postgres", "CloudBucket(CompanyLogos)"},
+			"UpsertCompany":        {"Postgres", "CloudBucket(CompanyLogos)"},
+			"GetCompanyLastUpdate": {"Postgres", "CloudBucket(CompanyLogos)"},
+		},
 	}
 
 	getUsersDAO := dao.NewGetUserRepository(db)
