@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"errors"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/pkg/handlers"
 	"github.com/in-rich/uservice-linkedin-data/pkg/models"
@@ -79,7 +80,7 @@ func TestUpsertUser(t *testing.T) {
 				}).
 				Return(tt.upsertResponse, tt.upsertErr)
 
-			handler := handlers.NewUpsertUser(service)
+			handler := handlers.NewUpsertUser(service, monitor.NewDummyGRPCLogger())
 			resp, err := handler.UpsertUser(context.TODO(), tt.in)
 
 			require.Equal(t, tt.expect, resp)

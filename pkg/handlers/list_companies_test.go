@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"errors"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/pkg/handlers"
 	"github.com/in-rich/uservice-linkedin-data/pkg/models"
@@ -69,7 +70,7 @@ func TestListCompanies(t *testing.T) {
 			service := servicesmocks.NewMockListCompaniesService(t)
 			service.On("Exec", context.TODO(), tt.in.PublicIdentifiers).Return(tt.listCompaniesResponse, tt.listCompaniesErr)
 
-			handler := handlers.NewListCompanies(service)
+			handler := handlers.NewListCompanies(service, monitor.NewDummyGRPCLogger())
 			resp, err := handler.ListCompanies(context.TODO(), tt.in)
 
 			require.Equal(t, tt.expect, resp)

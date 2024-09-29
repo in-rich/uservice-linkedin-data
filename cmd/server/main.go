@@ -2,35 +2,48 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"github.com/in-rich/lib-go/deploy"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/config"
 	"github.com/in-rich/uservice-linkedin-data/migrations"
 	"github.com/in-rich/uservice-linkedin-data/pkg/dao"
 	"github.com/in-rich/uservice-linkedin-data/pkg/handlers"
 	"github.com/in-rich/uservice-linkedin-data/pkg/services"
-	"log"
+	"github.com/rs/zerolog"
+	"os"
 )
 
+func getLogger() monitor.GRPCLogger {
+	if deploy.IsReleaseEnv() {
+		return monitor.NewGCPGRPCLogger(zerolog.New(os.Stdout), "uservice-linkedin-data")
+	}
+
+	return monitor.NewConsoleGRPCLogger()
+}
+
 func main() {
-	log.Println("Starting server")
+	logger := getLogger()
+
+	logger.Info("Starting server")
 	db, closeDB, err := deploy.OpenDB(config.App.Postgres.DSN)
 	if err != nil {
-		log.Fatalf("failed to connect to database: %v", err)
+		logger.Fatal(err, "failed to connect to database")
 	}
 	defer closeDB()
 
 	if err := migrations.Migrate(db); err != nil {
-		log.Fatalf("failed to migrate: %v", err)
+		logger.Fatal(err, "failed to migrate")
 	}
 
 	profilePicturesBucket, err := config.StorageClient.Bucket(config.Firebase.Buckets.ProfilePictures)
 	if err != nil {
-		log.Fatalf("failed to connect to profile pictures bucket: %v", err)
+		logger.Fatal(err, "failed to connect to profile pictures bucket")
 	}
 	companyLogosBucket, err := config.StorageClient.Bucket(config.Firebase.Buckets.CompanyLogos)
 	if err != nil {
-		log.Fatalf("failed to connect to company logos bucket: %v", err)
+		logger.Fatal(err, "failed to connect to company logos bucket")
 	}
 
 	depCheck := deploy.DepsCheck{
@@ -84,18 +97,18 @@ func main() {
 	upsertCompanyService := services.NewUpsertCompanyService(createCompanyDAO, updateCompanyDAO, upsertCompanyLogoDAO)
 	getCompanyLastUpdateService := services.NewGetCompanyLastUpdateService(getCompanyLastUpdateDAO)
 
-	getUserHandler := handlers.NewGetUser(getUserService)
-	listUsersHandler := handlers.NewListUsers(listUsersService)
-	upsertUserHandler := handlers.NewUpsertUser(upsertUserService)
-	getUserLastUpdateHandler := handlers.NewGetUserLastUpdate(getUserLastUpdateService)
+	getUserHandler := handlers.NewGetUser(getUserService, logger)
+	listUsersHandler := handlers.NewListUsers(listUsersService, logger)
+	upsertUserHandler := handlers.NewUpsertUser(upsertUserService, logger)
+	getUserLastUpdateHandler := handlers.NewGetUserLastUpdate(getUserLastUpdateService, logger)
 
-	getCompanyHandler := handlers.NewGetCompany(getCompanyService)
-	listCompaniesHandler := handlers.NewListCompanies(listCompaniesService)
-	upsertCompanyHandler := handlers.NewUpsertCompany(upsertCompanyService)
-	getCompanyLastUpdateHandler := handlers.NewGetCompanyLastUpdate(getCompanyLastUpdateService)
+	getCompanyHandler := handlers.NewGetCompany(getCompanyService, logger)
+	listCompaniesHandler := handlers.NewListCompanies(listCompaniesService, logger)
+	upsertCompanyHandler := handlers.NewUpsertCompany(upsertCompanyService, logger)
+	getCompanyLastUpdateHandler := handlers.NewGetCompanyLastUpdate(getCompanyLastUpdateService, logger)
 
-	log.Println("Starting to listen on port", config.App.Server.Port)
-	listener, server, health := deploy.StartGRPCServer(config.App.Server.Port, depCheck)
+	logger.Info(fmt.Sprintf("Starting to listen on port %v", config.App.Server.Port))
+	listener, server, health := deploy.StartGRPCServer(logger, config.App.Server.Port, depCheck)
 	defer deploy.CloseGRPCServer(listener, server)
 	go health()
 
@@ -109,8 +122,8 @@ func main() {
 	linkedin_data_pb.RegisterUpsertCompanyServer(server, upsertCompanyHandler)
 	linkedin_data_pb.RegisterGetCompanyLastUpdateServer(server, getCompanyLastUpdateHandler)
 
-	log.Println("Server started")
+	logger.Info("Server started")
 	if err := server.Serve(listener); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		logger.Fatal(err, "failed to serve")
 	}
 }

@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/pkg/dao"
 	"github.com/in-rich/uservice-linkedin-data/pkg/services"
@@ -13,9 +14,10 @@ import (
 type GetUserHandler struct {
 	linkedin_data_pb.GetUserServer
 	service services.GetUserService
+	logger  monitor.GRPCLogger
 }
 
-func (h *GetUserHandler) GetUser(ctx context.Context, in *linkedin_data_pb.GetUserRequest) (*linkedin_data_pb.User, error) {
+func (h *GetUserHandler) getUser(ctx context.Context, in *linkedin_data_pb.GetUserRequest) (*linkedin_data_pb.User, error) {
 	user, err := h.service.Exec(ctx, in.GetPublicIdentifier())
 	if err != nil {
 		if errors.Is(err, dao.ErrUserNotFound) {
@@ -33,8 +35,15 @@ func (h *GetUserHandler) GetUser(ctx context.Context, in *linkedin_data_pb.GetUs
 	}, nil
 }
 
-func NewGetUser(service services.GetUserService) *GetUserHandler {
+func (h *GetUserHandler) GetUser(ctx context.Context, in *linkedin_data_pb.GetUserRequest) (*linkedin_data_pb.User, error) {
+	res, err := h.getUser(ctx, in)
+	h.logger.Report(ctx, "GetUser", err)
+	return res, err
+}
+
+func NewGetUser(service services.GetUserService, logger monitor.GRPCLogger) *GetUserHandler {
 	return &GetUserHandler{
 		service: service,
+		logger:  logger,
 	}
 }
