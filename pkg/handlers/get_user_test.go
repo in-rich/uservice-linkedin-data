@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"context"
 	"errors"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/pkg/dao"
 	"github.com/in-rich/uservice-linkedin-data/pkg/handlers"
@@ -67,7 +68,7 @@ func TestGetUserData(t *testing.T) {
 			service := servicesmocks.NewMockGetUserService(t)
 			service.On("Exec", context.TODO(), tt.in.PublicIdentifier).Return(tt.getResponse, tt.getErr)
 
-			handler := handlers.NewGetUser(service)
+			handler := handlers.NewGetUser(service, monitor.NewDummyGRPCLogger())
 			resp, err := handler.GetUser(context.TODO(), tt.in)
 
 			require.Equal(t, tt.expect, resp)

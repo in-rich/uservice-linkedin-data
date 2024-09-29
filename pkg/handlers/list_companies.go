@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/pkg/services"
 	"google.golang.org/grpc/codes"
@@ -11,9 +12,10 @@ import (
 type ListCompaniesHandler struct {
 	linkedin_data_pb.ListCompaniesServer
 	service services.ListCompaniesService
+	logger  monitor.GRPCLogger
 }
 
-func (h *ListCompaniesHandler) ListCompanies(ctx context.Context, in *linkedin_data_pb.ListCompaniesRequest) (*linkedin_data_pb.ListCompaniesResponse, error) {
+func (h *ListCompaniesHandler) listCompanies(ctx context.Context, in *linkedin_data_pb.ListCompaniesRequest) (*linkedin_data_pb.ListCompaniesResponse, error) {
 	companies, err := h.service.Exec(ctx, in.GetPublicIdentifiers())
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to list companies: %v", err)
@@ -31,11 +33,17 @@ func (h *ListCompaniesHandler) ListCompanies(ctx context.Context, in *linkedin_d
 	}
 
 	return res, nil
-
 }
 
-func NewListCompanies(service services.ListCompaniesService) *ListCompaniesHandler {
+func (h *ListCompaniesHandler) ListCompanies(ctx context.Context, in *linkedin_data_pb.ListCompaniesRequest) (*linkedin_data_pb.ListCompaniesResponse, error) {
+	res, err := h.listCompanies(ctx, in)
+	h.logger.Report(ctx, "ListCompanies", err)
+	return res, err
+}
+
+func NewListCompanies(service services.ListCompaniesService, logger monitor.GRPCLogger) *ListCompaniesHandler {
 	return &ListCompaniesHandler{
 		service: service,
+		logger:  logger,
 	}
 }

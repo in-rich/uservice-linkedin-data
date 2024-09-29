@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/pkg/dao"
 	"github.com/in-rich/uservice-linkedin-data/pkg/models"
@@ -14,9 +15,10 @@ import (
 type UpsertCompanyHandler struct {
 	linkedin_data_pb.UpsertCompanyServer
 	service services.UpsertCompanyService
+	logger  monitor.GRPCLogger
 }
 
-func (h *UpsertCompanyHandler) UpsertCompany(ctx context.Context, in *linkedin_data_pb.UpsertCompanyRequest) (*linkedin_data_pb.Company, error) {
+func (h *UpsertCompanyHandler) upsertCompany(ctx context.Context, in *linkedin_data_pb.UpsertCompanyRequest) (*linkedin_data_pb.Company, error) {
 	company, err := h.service.Exec(ctx, in.GetPublicIdentifier(), &models.UpsertCompany{
 		Name:           in.GetName(),
 		ProfilePicture: in.GetProfilePictureBase64(),
@@ -36,8 +38,15 @@ func (h *UpsertCompanyHandler) UpsertCompany(ctx context.Context, in *linkedin_d
 	}, nil
 }
 
-func NewUpsertCompany(service services.UpsertCompanyService) *UpsertCompanyHandler {
+func (h *UpsertCompanyHandler) UpsertCompany(ctx context.Context, in *linkedin_data_pb.UpsertCompanyRequest) (*linkedin_data_pb.Company, error) {
+	res, err := h.upsertCompany(ctx, in)
+	h.logger.Report(ctx, "UpsertCompany", err)
+	return res, err
+}
+
+func NewUpsertCompany(service services.UpsertCompanyService, logger monitor.GRPCLogger) *UpsertCompanyHandler {
 	return &UpsertCompanyHandler{
 		service: service,
+		logger:  logger,
 	}
 }

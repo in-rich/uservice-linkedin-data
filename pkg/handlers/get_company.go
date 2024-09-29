@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"errors"
+	"github.com/in-rich/lib-go/monitor"
 	linkedin_data_pb "github.com/in-rich/proto/proto-go/linkedin-data"
 	"github.com/in-rich/uservice-linkedin-data/pkg/dao"
 	"github.com/in-rich/uservice-linkedin-data/pkg/services"
@@ -13,9 +14,10 @@ import (
 type GetCompanyHandler struct {
 	linkedin_data_pb.GetCompanyServer
 	service services.GetCompanyService
+	logger  monitor.GRPCLogger
 }
 
-func (h *GetCompanyHandler) GetCompany(ctx context.Context, in *linkedin_data_pb.GetCompanyRequest) (*linkedin_data_pb.Company, error) {
+func (h *GetCompanyHandler) getCompany(ctx context.Context, in *linkedin_data_pb.GetCompanyRequest) (*linkedin_data_pb.Company, error) {
 	company, err := h.service.Exec(ctx, in.GetPublicIdentifier())
 	if err != nil {
 		if errors.Is(err, dao.ErrCompanyNotFound) {
@@ -32,8 +34,15 @@ func (h *GetCompanyHandler) GetCompany(ctx context.Context, in *linkedin_data_pb
 	}, nil
 }
 
-func NewGetCompany(service services.GetCompanyService) *GetCompanyHandler {
+func (h *GetCompanyHandler) GetCompany(ctx context.Context, in *linkedin_data_pb.GetCompanyRequest) (*linkedin_data_pb.Company, error) {
+	res, err := h.getCompany(ctx, in)
+	h.logger.Report(ctx, "GetCompany", err)
+	return res, err
+}
+
+func NewGetCompany(service services.GetCompanyService, logger monitor.GRPCLogger) *GetCompanyHandler {
 	return &GetCompanyHandler{
 		service: service,
+		logger:  logger,
 	}
 }
